@@ -162,6 +162,7 @@ public class PendingRequests {
         private static final String DURATION_KEY = "duration";
         private static final String QUALITY_KEY = "quality";
         private static final String RESULTS_KEY = "results";
+        private static final String SHARED_KEY = "shared";
 
         // Unique int used to identify this request in any Android Permission or Activity callbacks
         public int requestCode;
@@ -178,6 +179,9 @@ public class PendingRequests {
         // Quality level for video capture 0 low, 1 high (CAPTURE_VIDEO only)
         public int quality = 1;
 
+        // Save pics/vids/audio to photo album to it can be shared with other apps
+        public boolean shared = true;
+
         // The array of results to be returned to the javascript callback on success
         public JSONArray results = new JSONArray();
 
@@ -192,6 +196,7 @@ public class PendingRequests {
                 this.limit = options.optLong("limit", 1);
                 this.duration = options.optInt("duration", 0);
                 this.quality = options.optInt("quality", 1);
+                this.shared = options.optBoolean("shared", true);
             }
 
             this.requestCode = incrementCurrentReqId();
@@ -204,6 +209,7 @@ public class PendingRequests {
             this.limit = bundle.getLong(LIMIT_KEY);
             this.duration = bundle.getInt(DURATION_KEY);
             this.quality = bundle.getInt(QUALITY_KEY);
+            this.shared = bundle.getBoolean(SHARED_KEY);
 
             try {
                 this.results = new JSONArray(bundle.getString(RESULTS_KEY));
@@ -220,6 +226,7 @@ public class PendingRequests {
             bundle.putLong(LIMIT_KEY, this.limit);
             bundle.putInt(DURATION_KEY, this.duration);
             bundle.putInt(QUALITY_KEY, this.quality);
+            bundle.putBoolean(SHARED_KEY, this.shared);
             bundle.putString(RESULTS_KEY, this.results.toString());
 
             return bundle;

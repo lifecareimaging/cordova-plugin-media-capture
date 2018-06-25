@@ -154,6 +154,8 @@ interface VideoOptions {
     limit?: number;
     /** The maximum duration of a video clip, in seconds. */
     duration?: number;
+    /** Save pics/vids/audio to photo album to it can be shared with other apps */
+    shared?: boolean;
 }
 
 /** Encapsulates a set of media capture parameters that a device supports. */

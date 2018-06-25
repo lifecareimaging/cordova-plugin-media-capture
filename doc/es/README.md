@@ -146,7 +146,7 @@ Cuando finaliza la operación de captura, el `CaptureCallback` se ejecuta con un
 ### Ejemplo
 
     // limit capture operation to 3 media files, no longer than 10 seconds each
-    var options = { limit: 3, duration: 10 };
+    var options = { limit: 3, duration: 10, shared: true };
     
     navigator.device.capture.captureAudio(captureSuccess, captureError, options);
     

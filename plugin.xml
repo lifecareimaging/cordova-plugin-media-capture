@@ -84,9 +84,24 @@ xmlns:rim="http://www.blackberry.com/ns/widgets"
             <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
         </config-file>
 
+        <config-file target="AndroidManifest.xml" parent="application">
+          <provider
+              android:name="org.apache.cordova.mediacapture.FileProvider"
+              android:authorities="${applicationId}.fileprovider"
+              android:exported="false"
+              android:grantUriPermissions="true" >
+              <meta-data
+                  android:name="android.support.FILE_PROVIDER_PATHS"
+                  android:resource="@xml/media_capture_provider_paths"/>
+          </provider>
+        </config-file>
+        
         <source-file src="src/android/Capture.java" target-dir="src/org/apache/cordova/mediacapture" />
+        <source-file src="src/android/CordovaUri.java" target-dir="src/org/apache/cordova/mediacapture" />
         <source-file src="src/android/FileHelper.java" target-dir="src/org/apache/cordova/mediacapture" />
-        <source-file src="src/android/PendingRequests.java" target-dir="src/org/apache/cordova/mediacapture" />
+        <source-file src="src/android/FileProvider.java" target-dir="src/org/apache/cordova/mediacapture" />
+        <source-file src="src/android/PendingRequests.java" target-dir="src/org/apache/cordova/mediacapture" />      
+        <source-file src="src/android/xml/media_capture_provider_paths.xml" target-dir="res/xml" />  
 
         <js-module src="www/android/init.js" name="init">
             <runs />

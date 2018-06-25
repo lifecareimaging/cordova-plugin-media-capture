@@ -265,6 +265,10 @@ by `CaptureVideoOptions.limit` is reached.  If no `limit` parameter
 value is specified, it defaults to one (1), and the capture operation
 terminates after the user records a single video clip.
 
+The captured video is shareable between other apps unless `CaptureVideoOptions.shared` is
+set to boolean false. If no `shared` option is specified it defaults to true and captured videos
+are shareable among applications (Photos etc.)
+ 
 When the capture operation finishes, it the `CaptureCB` callback
 executes with an array of `MediaFile` objects describing each captured
 video clip file.  If the user terminates the operation before

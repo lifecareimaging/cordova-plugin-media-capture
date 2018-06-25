@@ -26,6 +26,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import android.os.Build;
 import android.os.Bundle;
@@ -33,6 +35,7 @@ import android.os.Bundle;
 import org.apache.cordova.file.FileUtils;
 import org.apache.cordova.file.LocalFilesystemURL;
 
+import org.apache.cordova.BuildHelper;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.LOG;
@@ -48,6 +51,7 @@ import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.support.v4.content.FileProvider;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
@@ -70,6 +74,8 @@ public class Capture extends CordovaPlugin {
     private static final int CAPTURE_VIDEO = 2;     // Constant for capture video
     private static final String LOG_TAG = "Capture";
 
+private CordovaUri captureUri;            // Uri of captured image
+
     private static final int CAPTURE_INTERNAL_ERR = 0;
 //    private static final int CAPTURE_APPLICATION_BUSY = 1;
 //    private static final int CAPTURE_INVALID_ARGUMENT = 2;
@@ -82,7 +88,7 @@ public class Capture extends CordovaPlugin {
 
     private int numPics;                            // Number of pictures before capture activity
     private Uri imageUri;
-
+    private String applicationId;
 //    public void setContext(Context mCtx)
 //    {
 //        if (CordovaInterface.class.isInstance(mCtx))
@@ -97,8 +103,7 @@ public class Capture extends CordovaPlugin {
 
         // CB-10670: The CAMERA permission does not need to be requested unless it is declared
         // in AndroidManifest.xml. This plugin does not declare it, but others may and so we must
-        // check the package info to determine if the permission is present.
-
+        // check the package info to determine if the permission is present.        
         cameraPermissionInManifest = false;
         try {
             PackageManager packageManager = this.cordova.getActivity().getPackageManager();
@@ -120,6 +125,11 @@ public class Capture extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+        //Adding an API to CoreAndroid to get the BuildConfigValue
+        //This allows us to not make this a breaking change to embedding
+        this.applicationId = (String) BuildHelper.getBuildConfigValue(cordova.getActivity(), "APPLICATION_ID");
+        this.applicationId = preferences.getString("applicationId", this.applicationId);
+
         if (action.equals("getFormatData")) {
             JSONObject obj = getFormatData(args.getString(0), args.getString(1));
             callbackContext.success(obj);
@@ -238,12 +248,42 @@ public class Capture extends CordovaPlugin {
     private String getTempDirectoryPath() {
         File cache = null;
 
+        // SD Card Mounted
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            cache = cordova.getActivity().getExternalCacheDir();
+        }
         // Use internal storage
-        cache = cordova.getActivity().getCacheDir();
+        else {
+            cache = cordova.getActivity().getCacheDir();
+        }
 
         // Create the cache directory if it doesn't exist
         cache.mkdirs();
         return cache.getAbsolutePath();
+    }
+
+    private String getPublicStoragePath(int captureType) {
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            if (captureType == CAPTURE_VIDEO) {
+                File mediaStorageDir = null;
+
+                mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DCIM), applicationId);
+
+                if (!mediaStorageDir.exists()) {
+                    if (!mediaStorageDir.mkdirs()) {
+                        LOG.d(LOG_TAG, "failed to create directory");
+                        return getTempDirectoryPath();
+                    }
+                }                   
+                return mediaStorageDir.getAbsolutePath();
+            }
+        } else {
+            LOG.d(LOG_TAG, "external storage not accessible");
+        }
+
+        // if public storage not accessible then fall to application temp directory               
+        return getTempDirectoryPath();
     }
 
     /**
@@ -291,8 +331,20 @@ public class Capture extends CordovaPlugin {
      * Sets up an intent to capture video.  Result handled by onActivityResult()
      */
     private void captureVideo(Request req) {
-        if(cameraPermissionInManifest && !PermissionHelper.hasPermission(this, Manifest.permission.CAMERA)) {
-            PermissionHelper.requestPermission(this, req.requestCode, Manifest.permission.CAMERA);
+        boolean needExternalStoragePermission =
+            !PermissionHelper.hasPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
+
+        boolean needCameraPermission = cameraPermissionInManifest &&
+            !PermissionHelper.hasPermission(this, Manifest.permission.CAMERA);
+
+        if (needExternalStoragePermission || needCameraPermission) {
+            if (needExternalStoragePermission && needCameraPermission) {
+                PermissionHelper.requestPermissions(this, req.requestCode, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.CAMERA});
+            } else if (needExternalStoragePermission) {
+                PermissionHelper.requestPermission(this, req.requestCode, Manifest.permission.READ_EXTERNAL_STORAGE);
+            } else {
+                PermissionHelper.requestPermission(this, req.requestCode, Manifest.permission.CAMERA);
+            }
         } else {
             Intent intent = new Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE);
 
@@ -300,10 +352,30 @@ public class Capture extends CordovaPlugin {
                 intent.putExtra("android.intent.extra.durationLimit", req.duration);
                 intent.putExtra("android.intent.extra.videoQuality", req.quality);
             }
-            this.cordova.startActivityForResult((CordovaPlugin) this, intent, req.requestCode);
+            File file = createCaptureFile(CAPTURE_VIDEO, req.shared);
+            this.captureUri = new CordovaUri(
+                FileProvider.getUriForFile(cordova.getActivity(), 
+                    applicationId + ".fileprovider", 
+                    file));
+            
+            intent.putExtra(android.provider.MediaStore.EXTRA_OUTPUT, captureUri.getCorrectUri());
+            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            
+            this.cordova.startActivityForResult(
+                (CordovaPlugin) this, intent, req.requestCode);
         }
     }
 
+    /**
+     * Create a file in the applications temporary directory based upon the supplied encoding.
+     *
+     * @return a File object pointing to the public pictures/temporary picture
+     */
+    private File createCaptureFile(int capturetype, boolean shared) {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());       
+        return new File(shared ? getPublicStoragePath(capturetype) : getTempDirectoryPath(),
+            "vid_" + timeStamp + ".mp4");
+    }
     /**
      * Called when the video view exits.
      *
@@ -410,8 +482,12 @@ public class Capture extends CordovaPlugin {
             pendingRequests.resolveWithFailure(req, createErrorObject(CAPTURE_NO_MEDIA_FILES, "Error: data is null"));
         }
         else {
-            req.results.put(createMediaFile(data));
-
+            // send broadcast if shared to other apps too        
+            if(req.shared) {
+                cordova.getActivity().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, this.captureUri.getCorrectUri()));
+            }
+            Uri fileUri = this.captureUri.getFileUri();
+            req.results.put(createMediaFile(fileUri));
             if (req.results.length() >= req.limit) {
                 // Send Uri back to JavaScript for viewing video
                 pendingRequests.resolveWithSuccess(req);
@@ -579,4 +655,24 @@ public class Capture extends CordovaPlugin {
     public void onRestoreStateForActivityResult(Bundle state, CallbackContext callbackContext) {
         pendingRequests.setLastSavedState(state, callbackContext);
     }
+
+    /*
+    * This is dirty, but it does the job.
+    *
+    * Since the FilesProvider doesn't really provide you a way of getting a URL from the file,
+    * and since we actually need the Camera to create the file for us most of the time, we don't
+    * actually write the file, just generate the location based on a timestamp, we need to get it
+    * back from the Intent.
+    *
+    * However, the FilesProvider preserves the path, so we can at least write to it from here, since
+    * we own the context in this case.
+    */
+    private String getFileNameFromUri(Uri uri) {
+        String fullUri = uri.toString();
+        String partial_path = fullUri.split("external_files")[1];
+        File external_storage = Environment.getExternalStorageDirectory();
+        String path = external_storage.getAbsolutePath() + partial_path;
+        return path;
+
+    }    
 }

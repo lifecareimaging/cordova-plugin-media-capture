@@ -74,6 +74,7 @@ exports.defineAutoTests = function () {
                 expect(options).toBeDefined();
                 expect(options.limit).toBeDefined();
                 expect(options.duration).toBeDefined();
+                expect(options.shared).toBeDefined();
             });
         });
 
