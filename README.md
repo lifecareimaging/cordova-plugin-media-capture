@@ -370,6 +370,13 @@ capturing a video clip, the `CaptureErrorCB` callback executes with a
 ### iOS Quirks
 
 - The __limit__ property is ignored.  Only one video is recorded per invocation.
+- iOS supports an additional __videoQuality__ property, to allow capturing video at different qualities. Possible values:
+  - "high" = 1920x1080
+  - "medium" = 480x320
+  - "low" = 192x144
+  - "1280x720" = as described
+  - "960x540" = as described
+  - "640x480" = as described
 
 ### Android Quirks
 

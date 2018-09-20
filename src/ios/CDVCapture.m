@@ -223,6 +223,7 @@
     // options could contain limit, duration and mode
     // taking more than one video (limit) is only supported if provide own controls via cameraOverlayView property
     NSNumber* duration = [options objectForKey:@"duration"];
+    NSString* videoQuality = [options objectForKey:@"videoQuality"];
     NSString* mediaType = nil;
 
     if ([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]) {
@@ -259,6 +260,21 @@
         if ([mediaType isEqualToString:(NSString*)kUTTypeMovie]){
             if (duration) {
                 pickerController.videoMaximumDuration = [duration doubleValue];
+            }
+            if (videoQuality) {
+                if ([videoquality isEqual:@"high"]) {
+                    pickerController.videoQuality = UIImagePickerControllerQualityTypeHigh;
+                } else if ([videoQuality isEqual:@"medium"]) {
+                    pickerController.videoQuality = UIImagePickerControllerQualityTypeMedium;
+                } else if ([videoQuality isEqual:@"low"]) {
+                    pickerController.videoQuality = UIImagePickerControllerQualityTypeLow;
+                } else if ([videoQuality isEqual:@"1280x720"]) {
+                    pickerController.videoQuality = UIImagePickerControllerQualityTypeIFrame1280x720;
+                } else if ([videoQuality isEqual:@"960x540"]) {
+                    pickerController.videoQuality = UIImagePickerControllerQualityTypeIFrame960x540;
+                } else if ([videoQuality isEqual:@"640x480"]) {
+                    pickerController.videoQuality = UIImagePickerControllerQualityType640x480;
+                }
             }
             //NSLog(@"pickerController.videoMaximumDuration = %f", pickerController.videoMaximumDuration);
         }
