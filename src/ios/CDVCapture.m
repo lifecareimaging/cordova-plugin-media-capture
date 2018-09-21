@@ -262,7 +262,7 @@
                 pickerController.videoMaximumDuration = [duration doubleValue];
             }
             if (videoQuality) {
-                if ([videoquality isEqual:@"high"]) {
+                if ([videoQuality isEqual:@"high"]) {
                     pickerController.videoQuality = UIImagePickerControllerQualityTypeHigh;
                 } else if ([videoQuality isEqual:@"medium"]) {
                     pickerController.videoQuality = UIImagePickerControllerQualityTypeMedium;
