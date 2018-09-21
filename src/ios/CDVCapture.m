@@ -76,6 +76,7 @@
 
 @implementation CDVCapture
 @synthesize inUse;
+@synthesize options;
 
 - (void)pluginInitialize
 {
@@ -85,13 +86,13 @@
 - (void)captureAudio:(CDVInvokedUrlCommand*)command
 {
     NSString* callbackId = command.callbackId;
-    NSDictionary* options = [command argumentAtIndex:0];
-
-    if ([options isKindOfClass:[NSNull class]]) {
-        options = [NSDictionary dictionary];
+    self.options = [command argumentAtIndex:0];
+    
+    if ([self.options isKindOfClass:[NSNull class]]) {
+        self.options = [NSDictionary dictionary];
     }
-
-    NSNumber* duration = [options objectForKey:@"duration"];
+    
+    NSNumber* duration = [self.options objectForKey:@"duration"];
     // the default value of duration is 0 so use nil (no duration) if default value
     if (duration) {
         duration = [duration doubleValue] == 0 ? nil : duration;
@@ -122,10 +123,10 @@
 - (void)captureImage:(CDVInvokedUrlCommand*)command
 {
     NSString* callbackId = command.callbackId;
-    NSDictionary* options = [command argumentAtIndex:0];
-
-    if ([options isKindOfClass:[NSNull class]]) {
-        options = [NSDictionary dictionary];
+    self.options = [command argumentAtIndex:0];
+    
+    if ([self.options isKindOfClass:[NSNull class]]) {
+        self.options = [NSDictionary dictionary];
     }
 
     // options could contain limit and mode neither of which are supported at this time
@@ -203,6 +204,8 @@
         // create MediaFile object
 
         NSDictionary* fileDict = [self getMediaDictionaryFromPath:filePath ofType:mimeType];
+        [fileDict setValue:[self formatFullPath:fileDict] forKey:@"fullPath"];
+        
         NSArray* fileArray = [NSArray arrayWithObject:fileDict];
 
         result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:fileArray];
@@ -214,16 +217,16 @@
 - (void)captureVideo:(CDVInvokedUrlCommand*)command
 {
     NSString* callbackId = command.callbackId;
-    NSDictionary* options = [command argumentAtIndex:0];
-
-    if ([options isKindOfClass:[NSNull class]]) {
-        options = [NSDictionary dictionary];
+    self.options = [command argumentAtIndex:0];
+    
+    if ([self.options isKindOfClass:[NSNull class]]) {
+        self.options = [NSDictionary dictionary];
     }
 
     // options could contain limit, duration and mode
     // taking more than one video (limit) is only supported if provide own controls via cameraOverlayView property
-    NSNumber* duration = [options objectForKey:@"duration"];
-    NSString* videoQuality = [options objectForKey:@"videoQuality"];
+    NSNumber* duration = [self.options objectForKey:@"duration"];
+    NSString* videoQuality = [self.options objectForKey:@"videoQuality"];
     NSString* mediaType = nil;
 
     if ([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]) {
@@ -306,6 +309,8 @@
     }*/
     // create MediaFile object
     NSDictionary* fileDict = [self getMediaDictionaryFromPath:moviePath ofType:nil];
+    [fileDict setValue:[self formatFullPath:fileDict] forKey:@"fullPath"];
+    
     NSArray* fileArray = [NSArray arrayWithObject:fileDict];
 
     return [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:fileArray];
@@ -598,6 +603,16 @@
     CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageToErrorObject:CAPTURE_NO_MEDIA_FILES];
     [self.commandDelegate sendPluginResult:result callbackId:callbackId];
     pickerController = nil;
+}
+
+- (NSString*)formatFullPath:(NSDictionary*)fileDictionary
+{
+    NSString* pathType = [self.options objectForKey:@"pathType"];
+    NSString* originalPath = [fileDictionary objectForKey:@"fullPath"];
+    if ([pathType isEqual:@"url"]) {
+        return [originalPath stringByReplacingOccurrencesOfString:@"/private/" withString:@"file:///"];
+    }
+    return originalPath;
 }
 
 @end

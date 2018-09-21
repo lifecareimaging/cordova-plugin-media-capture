@@ -377,6 +377,8 @@ capturing a video clip, the `CaptureErrorCB` callback executes with a
   - "1280x720" = as described
   - "960x540" = as described
   - "640x480" = as described
+- Also, iOS supports an additional __pathType__ property, and when it is set to "url", returned fullPaths (after captureVideo and captureImage) will start with "file://" prefix instead of "/private/"
+  - Not implemented on captureAudio yet.
 
 ### Android Quirks
 
