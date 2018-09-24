@@ -51,6 +51,8 @@ typedef NSUInteger CDVCaptureError;
     BOOL inUse;
 }
 @property BOOL inUse;
+@property NSDictionary* options;
+
 - (void)captureAudio:(CDVInvokedUrlCommand*)command;
 - (void)captureImage:(CDVInvokedUrlCommand*)command;
 - (CDVPluginResult*)processImage:(UIImage*)image type:(NSString*)mimeType forCallbackId:(NSString*)callbackId;
@@ -62,7 +64,7 @@ typedef NSUInteger CDVCaptureError;
 - (void)imagePickerController:(UIImagePickerController*)picker didFinishPickingMediaWithInfo:(NSDictionary*)info;
 - (void)imagePickerController:(UIImagePickerController*)picker didFinishPickingImage:(UIImage*)image editingInfo:(NSDictionary*)editingInfo;
 - (void)imagePickerControllerDidCancel:(UIImagePickerController*)picker;
-
+- (NSString*) formatFullPath:(NSDictionary*)fileDictionary;
 @end
 
 @interface CDVAudioNavigationController : UINavigationController
