@@ -32,9 +32,6 @@ import java.util.Date;
 import android.os.Build;
 import android.os.Bundle;
 
-import org.apache.cordova.file.FileUtils;
-import org.apache.cordova.file.LocalFilesystemURL;
-
 import org.apache.cordova.BuildHelper;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -526,15 +523,14 @@ private CordovaUri captureUri;            // Uri of captured image
             } catch (IllegalAccessException e) {
             }
         }
-        FileUtils filePlugin = (FileUtils) pm.getPlugin("File");
-        LocalFilesystemURL url = filePlugin.filesystemURLforLocalPath(fp.getAbsolutePath());
+        File file = new File(fp.getAbsolutePath());
 
         try {
             // File properties
             obj.put("name", fp.getName());
             obj.put("fullPath", Uri.fromFile(fp));
-            if (url != null) {
-                obj.put("localURL", url.toString());
+            if (file != null) {
+                obj.put("localURL", file.toURI().toString());
             }
             // Because of an issue with MimeTypeMap.getMimeTypeFromExtension() all .3gpp files
             // are reported as video/3gpp. I'm doing this hacky check of the URI to see if it
